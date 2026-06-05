@@ -1,0 +1,68 @@
+require('dotenv').config();
+const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const axios = require('axios');
+
+const client = new Client({
+    intents: [GatewayIntentBits.Guilds]
+});
+
+let lastData = '';
+
+async function sendShop(channel) {
+    try {
+        const { data } = await axios.get('https://rl.guac.net/api/shop');
+
+        const current = JSON.stringify(data);
+
+        if (current === lastData) return;
+
+        lastData = current;
+
+        const embed = new EmbedBuilder()
+            .setTitle('🛒 Boutique Rocket League')
+            .setColor(0x0099ff)
+            .setTimestamp();
+
+        let text = '';
+
+        for (const item of data.items.slice(0, 15)) {
+            text += `**${item.name}**\n💰 ${item.credits} crédits\n\n`;
+        }
+
+        embed.setDescription(text);
+
+        if (data.items[0]?.image) {
+            embed.setThumbnail(data.items[0].image);
+        }
+
+        await channel.send({
+            content: '🚀 Nouvelle boutique Rocket League !',
+            embeds: [embed]
+        });
+
+    } catch (e) {
+        console.log(e.message);
+    }
+}
+
+client.once('ready', async () => {
+
+    console.log(`Connecté : ${client.user.tag}`);
+
+    const channel = await client.channels.fetch(process.env.CHANNEL_ID);
+
+    await sendShop(channel);
+
+    setInterval(async () => {
+        await sendShop(channel);
+    }, 600000);
+});
+
+client.login(process.env.TOKEN);
+{
+  "dependencies": {
+    "axios": "^1.8.1",
+    "discord.js": "^14.21.0",
+    "dotenv": "^16.4.5"
+  }
+}
